@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="General relativity animated from exact Schwarzschild geodesics: curved space, world lines in spacetime and gravitational waves.">
+<title>Wheeler's Spacetime</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one dark observatory page. Title, then a full-width 3D stage with view tabs, then equations and live clock readouts, then what each view shows. */
+:root {
+  --void: #07080d;
+  --panel: #0f121c;
+  --line: #262d45;
+  --chalk: #e9e5d8;
+  --dim: #9097ad;
+  --gold: #f2b84b;     /* geodesics: matter moving */
+  --cyan: #7fd6e8;     /* light */
+  --rose: #e47d9c;     /* clocks */
+  --grid: #5d6c9e;     /* curved spacetime */
+  --display: "Newsreader", "Iowan Old Style", Georgia, serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { background: var(--void); color: var(--chalk); }
+[hidden] { display: none !important; }
+body { font-family: var(--body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 56px; display: grid; gap: 22px; }
+header { display: grid; gap: 8px; max-width: 760px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(30px, 5vw, 50px); line-height: 1.05; margin: 0; text-wrap: balance; }
+h1 em { color: var(--gold); font-style: italic; }
+h1 span { color: var(--grid); }
+.lede { color: var(--dim); margin: 0; max-width: 64ch; }
+.lede a { color: var(--chalk); }
+
+.stage { position: relative; height: clamp(380px, 66vh, 720px); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--void); }
+.stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.tabs { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; flex-wrap: wrap; gap: 6px; pointer-events: none; }
+.tabs button { pointer-events: auto; font: 500 13px var(--body); color: var(--dim); background: rgba(15,18,28,.82); border: 1px solid var(--line); border-radius: 999px; padding: 6px 13px; cursor: pointer; }
+.tabs button[aria-pressed="true"] { color: var(--void); background: var(--chalk); border-color: var(--chalk); }
+.tabs button:focus-visible, .controls button:focus-visible, .controls input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.caption { position: absolute; left: 12px; bottom: 12px; max-width: min(460px, calc(100% - 24px)); font-size: 13px; color: var(--chalk); background: rgba(7,8,13,.78); border: 1px solid var(--line); border-radius: 6px; padding: 9px 12px; }
+.caption b { font-weight: 600; }
+.labels { position: absolute; inset: 0; pointer-events: none; }
+.tag { position: absolute; font: 500 11px var(--mono); white-space: nowrap; transform: translate(8px, -50%); text-shadow: 0 0 4px var(--void), 0 0 8px var(--void); }
+
+.controls { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; }
+.controls button { font: 500 13px var(--body); color: var(--chalk); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 7px 14px; cursor: pointer; }
+.ctl { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--dim); }
+.ctl input[type=range] { width: 140px; accent-color: var(--gold); }
+.ctl output { font: 500 12px var(--mono); color: var(--chalk); min-width: 4.5ch; font-variant-numeric: tabular-nums; }
+.ctl input[type=checkbox] { accent-color: var(--gold); width: 16px; height: 16px; }
+
+.below { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 22px; }
+@media (max-width: 820px) { .below { grid-template-columns: minmax(0, 1fr); } }
+.eqs { display: grid; gap: 16px; align-content: start; }
+.eq { display: grid; gap: 4px; }
+.eq .f { font-family: var(--display); font-size: clamp(20px, 2.6vw, 27px); overflow-x: auto; white-space: nowrap; padding-bottom: 2px; }
+.eq .f i { font-style: italic; }
+.eq p { margin: 0; color: var(--dim); font-size: 14px; max-width: 60ch; }
+.c-grid { color: var(--grid); } .c-gold { color: var(--gold); } .c-cyan { color: var(--cyan); } .c-rose { color: var(--rose); }
+blockquote { margin: 0; font-family: var(--display); font-style: italic; font-size: 21px; line-height: 1.35; color: var(--chalk); max-width: 46ch; }
+blockquote cite { display: block; font: 400 12px var(--mono); font-style: normal; letter-spacing: .08em; color: var(--dim); margin-top: 6px; text-transform: uppercase; }
+
+.readout { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; display: grid; gap: 10px; align-content: start; }
+.readout h2 { margin: 0; font: 500 12px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
+.rows { display: grid; gap: 0; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+.row:last-child { border-bottom: 0; }
+.row span:last-child { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; vertical-align: 1px; }
+.note { font-size: 12.5px; color: var(--dim); margin: 0; }
+
+.views { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; border-top: 1px solid var(--line); padding-top: 22px; }
+@media (max-width: 820px) { .views { grid-template-columns: minmax(0, 1fr); } }
+.views h3 { font-family: var(--display); font-weight: 600; font-size: 20px; margin: 0 0 6px; text-wrap: balance; }
+.views p { margin: 0 0 8px; color: var(--dim); font-size: 14px; }
+.views p strong { color: var(--chalk); font-weight: 500; }
+footer { color: var(--dim); font-size: 12.5px; border-top: 1px solid var(--line); padding-top: 14px; }
+footer a { color: var(--chalk); }
+body { margin: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">General relativity · Schwarzschild geometry · G = c = 1</div>
+    <h1><span>Matter tells spacetime how to curve;</span> <em>curved spacetime tells matter how to move.</em></h1>
+    <p class="lede">Wheeler's summary, animated in four dimensions. Every path here is integrated from the geodesic equation around one mass, so the rosette orbit, the bent light and the slow clocks are computed, not drawn by hand. After the post by <a href="https://x.com/PhilosophyOfPhy/status/2120778156407742505" target="_blank" rel="noopener">@PhilosophyOfPhy</a>.</p>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="cv" aria-label="Animated 3D view of curved spacetime around a mass"></canvas>
+    <div class="labels" id="labels"></div>
+    <div class="tabs" role="group" aria-label="View">
+      <button id="tab-space" aria-pressed="true">Curved space</button>
+      <button id="tab-st" aria-pressed="false">Spacetime (x, y, t)</button>
+      <button id="tab-gw" aria-pressed="false">Gravitational waves</button>
+    </div>
+    <div class="caption" id="caption"></div>
+  </div>
+
+  <div class="controls">
+    <button id="play">Pause</button>
+    <label class="ctl" for="mass">Mass M <input type="range" id="mass" min="0.3" max="1.6" step="0.05" value="1"><output id="massOut">1.00</output></label>
+    <label class="ctl" for="speed">Speed <input type="range" id="speed" min="0.2" max="3" step="0.1" value="1"><output id="speedOut">1.0×</output></label>
+    <label class="ctl" for="newton"><input type="checkbox" id="newton" checked> Newton's ellipse</label>
+    <span class="ctl">Drag to orbit · scroll or pinch to zoom</span>
+  </div>
+
+  <div class="below">
+    <div class="eqs">
+      <blockquote>Gravity is not simply a force acting through space. It is a manifestation of spacetime geometry.<cite>Philosophy Of Physics, 12 Nov 2026</cite></blockquote>
+      <div class="eq">
+        <div class="f"><span class="c-grid"><i>G</i><sub>μν</sub></span> = <sup>8π<i>G</i></sup>⁄<sub><i>c</i>⁴</sub> <span class="c-gold"><i>T</i><sub>μν</sub></span></div>
+        <p><span class="c-grid">The grid</span> is the left side: curvature. The mass at the centre is the right side: energy and momentum. Raise <i>M</i> and the well deepens.</p>
+      </div>
+      <div class="eq">
+        <div class="f"><span class="c-gold"><sup>d²<i>x</i><sup>μ</sup></sup>⁄<sub>d<i>τ</i>²</sub></span> + <span class="c-grid">Γ<sup>μ</sup><sub>αβ</sub></span> <sup>d<i>x</i><sup>α</sup></sup>⁄<sub>d<i>τ</i></sub> <sup>d<i>x</i><sup>β</sup></sup>⁄<sub>d<i>τ</i></sub> = 0</div>
+        <p>No force term. <span class="c-gold">The planet</span> and <span class="c-cyan">the light</span> both follow this equation; the connection Γ, built from the curved metric, is what bends their paths.</p>
+      </div>
+    </div>
+
+    <div class="readout" aria-live="off">
+      <h2 id="roTitle">Live readouts</h2>
+      <div class="rows" id="roOrbit">
+        <div class="row"><span><span class="dot" style="background:var(--chalk)"></span>Far-away clock, coordinate time <i>t</i></span><span id="r-t">0</span></div>
+        <div class="row"><span><span class="dot" style="background:var(--gold)"></span>Planet's own clock, proper time <i>τ</i></span><span id="r-tau">0</span></div>
+        <div class="row"><span>Planet distance <i>r</i> · clock rate d<i>τ</i>/d<i>t</i></span><span id="r-r">0</span></div>
+        <div class="row"><span><span class="dot" style="background:var(--rose)"></span>Clock held at <i>r</i> = 4 · rate</span><span id="r-c4">0</span></div>
+        <div class="row"><span><span class="dot" style="background:#f0a070"></span>Clock held at <i>r</i> = 8 · rate</span><span id="r-c8">0</span></div>
+        <div class="row"><span>Perihelion advance per orbit, measured · weak-field 6π<i>M</i>/<i>p</i></span><span id="r-prec">0</span></div>
+        <div class="row"><span>Light bent at <i>b</i> = 22, measured · weak-field 4<i>M</i>/<i>b</i></span><span id="r-bend">0</span></div>
+      </div>
+      <div class="rows" id="roGW" hidden>
+        <div class="row"><span>Orbital period of the pair</span><span id="g-p">0</span></div>
+        <div class="row"><span>Wave frequency (twice the orbital)</span><span id="g-f">0</span></div>
+        <div class="row"><span>Phase</span><span id="g-s">inspiral</span></div>
+      </div>
+      <p class="note">Lengths in units of <i>GM</i>/<i>c</i>² (1.48 km for the Sun), times in <i>GM</i>/<i>c</i>³ (4.9 μs for the Sun). The orbit runs between <i>r</i> = 12 and 30, far closer than Mercury, so the precession Mercury shows as 43″ a century here is tens of degrees an orbit.</p>
+    </div>
+  </div>
+
+  <section class="views">
+    <div>
+      <h3>Curved space</h3>
+      <p>A slice of space at one instant, lifted into an extra dimension so its curvature can be seen (Flamm's paraboloid). <strong>The gold orbit does not close:</strong> each perihelion lands further round, the same effect Einstein used to explain Mercury. The dashed ellipse is Newton's orbit with the same closest and farthest points.</p>
+      <p><strong>Cyan pulses are light</strong> passing the mass. Close passes bend more; inside 3√3 <i>M</i> the light spirals in and never escapes.</p>
+    </div>
+    <div>
+      <h3>Spacetime (x, y, t)</h3>
+      <p>Drop one space dimension and let time run upward. The planet's history becomes a <strong>helix of a world line</strong>, the mass a vertical column. Beads mark one tick of each clock: the clock held at <i>r</i> = 4 ticks far less often than the one at <i>r</i> = 30. That is gravitational time dilation.</p>
+      <p>The cones on the top slice are where light can go next. Near the mass they narrow, most of all toward the outside.</p>
+    </div>
+    <div>
+      <h3>Gravitational waves</h3>
+      <p>Two masses spiral together. Their changing quadrupole sends ripples of strain outward at the speed of light, with <strong>twice the orbital frequency</strong>, rising in pitch and amplitude to the merger: the chirp LIGO first heard in 2015.</p>
+      <p>The ring of free particles above stretches one way and squeezes the other. Real strains are about 10⁻²¹; these are exaggerated beyond measure.</p>
+    </div>
+  </section>
+
+  <footer>Newton's gravity remains an excellent approximation in weak fields and at low speeds: lower the mass and the gold orbit closes onto the dashed ellipse. Exact Schwarzschild geodesics, integrated with RK4 in the orbit's angle; time-like and null paths share one code path except for the 1/L² term.</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(() => {
+const S = 0.12, REDGE = 42, EMB = 1.5;
+const K = 0.008;            // display height per unit of coordinate time
+const TOP = 2.0, PAST = 6.0, FUT = 1.4;
+const COL = { gold: 0xf2b84b, cyan: 0x7fd6e8, rose: 0xe47d9c, orange: 0xf0a070, chalk: 0xe9e5d8, grid: 0x5d6c9e, void: 0x07080d };
+const CLOCKS = [ { r: 4, phi: 1.9, col: COL.rose, name: 'r = 4' }, { r: 8, phi: 2.6, col: COL.orange, name: 'r = 8' }, { r: 30, phi: 3.7, col: COL.chalk, name: 'r = 30' } ];
+const TICK = 40;            // proper time between beads
+
+let M = 1;
+const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let playing = !reduce, speed = 1, mode = 'space';
+
+// ---------- physics ----------
+function surf(r) { r = Math.max(r, 2 * M + 1e-9); return EMB * S * (2 * Math.sqrt(2 * M * (r - 2 * M)) - 2 * Math.sqrt(2 * M * (REDGE - 2 * M))); }
+
+function rk4(state, f, h) {
+  const n = state.length, k1 = f(state), s2 = new Array(n), s3 = new Array(n), s4 = new Array(n);
+  for (let i = 0; i < n; i++) s2[i] = state[i] + h / 2 * k1[i];
+  const k2 = f(s2); for (let i = 0; i < n; i++) s3[i] = state[i] + h / 2 * k2[i];
+  const k3 = f(s3); for (let i = 0; i < n; i++) s4[i] = state[i] + h * k3[i];
+  const k4 = f(s4); for (let i = 0; i < n; i++) state[i] += h / 6 * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]);
+}
+
+let orbit, rays;
+function buildOrbit() {
+  const rp = 12, ra = 30, u1 = 1 / rp, u2 = 1 / ra, u3 = 1 / (2 * M) - u1 - u2;
+  const L2 = 1 / (u1 * u2 + u3 * (u1 + u2)), L = Math.sqrt(L2);
+  const E = Math.sqrt((1 - 2 * M * u2) * (1 + L2 * u2 * u2));
+  const f = s => { const u = s[0]; return [s[1], M / L2 - u + 3 * M * u * u, E / (L * u * u * (1 - 2 * M * u)), 1 / (L * u * u)]; };
+  const st = [u2, 0, 0, 0]; let phi = 0; const h = 0.004;
+  const P = { phi: [], r: [], t: [], tau: [] }, peri = [], ticks = [];
+  let nextTick = TICK, prevW = 0;
+  const TMAX = 9000;
+  for (let i = 0; st[2] < TMAX; i++) {
+    if (i % 5 === 0) { P.phi.push(phi); P.r.push(1 / st[0]); P.t.push(st[2]); P.tau.push(st[3]); }
+    const tauPrev = st[3], tPrev = st[2], phiPrev = phi, uPrev = st[0];
+    rk4(st, f, h); phi += h;
+    if (prevW > 0 && st[1] <= 0) peri.push(phi);
+    prevW = st[1];
+    while (st[3] >= nextTick) {
+      const a = (nextTick - tauPrev) / (st[3] - tauPrev);
+      ticks.push({ t: tPrev + a * (st[2] - tPrev), phi: phiPrev + a * h, r: 1 / (uPrev + a * (st[0] - uPrev)) });
+      nextTick += TICK;
+    }
+  }
+  let adv = 0; if (peri.length > 1) adv = ((peri[peri.length - 1] - peri[0]) / (peri.length - 1) - 2 * Math.PI);
+  const p = 2 / (u1 + u2);
+  orbit = { P, ticks, adv, advWeak: 6 * Math.PI * M / p, rp, ra, Tend: P.t[P.t.length - 1] };
+}
+
+function buildRays() {
+  rays = [];
+  for (const bb of [-22, -14, -9, -6, 6, 9, 14, 22]) {
+    const sg = Math.sign(bb), b = Math.abs(bb), r0 = REDGE;
+    let phi = Math.asin(b / r0);
+    const st = [1 / r0, Math.cos(phi) / b, 0];
+    const f = s => { const u = s[0]; return [s[1], -u + 3 * M * u * u, 1 / (b * u * u * (1 - 2 * M * u))]; };
+    const pts = [], h = 0.003; let captured = false;
+    for (let i = 0; i < 30000; i++) {
+      if (i % 3 === 0) pts.push({ x: Math.cos(phi) / st[0], y: sg * Math.sin(phi) / st[0], t: st[2], r: 1 / st[0] });
+      rk4(st, f, h); phi += h;
+      if (st[0] >= 1 / (2 * M) * 0.985) { captured = true; break; }
+      if (st[0] < 1 / r0 && i > 50) break;
+    }
+    pts.push({ x: Math.cos(phi) / st[0], y: sg * Math.sin(phi) / st[0], t: st[2], r: 1 / st[0] });
+    let defl = null;
+    if (!captured) {
+      const a = pts[pts.length - 4], z = pts[pts.length - 1];
+      defl = Math.atan2(sg * (z.y - a.y), -(z.x - a.x));  // angle away from the incoming direction (-x)
+      defl = Math.abs(defl);
+    }
+    rays.push({ b: bb, pts, captured, defl, tEnd: pts[pts.length - 1].t });
+  }
+}
+
+function idxAt(arr, t) { let lo = 0, hi = arr.length - 1; if (t <= arr[0]) return 0; if (t >= arr[hi]) return hi; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (arr[m] <= t) lo = m; else hi = m; } return lo; }
+function orbitAt(t) {
+  const P = orbit.P, i = idxAt(P.t, t), j = Math.min(i + 1, P.t.length - 1);
+  const a = j > i ? (t - P.t[i]) / (P.t[j] - P.t[i]) : 0;
+  return { i, phi: P.phi[i] + a * (P.phi[j] - P.phi[i]), r: P.r[i] + a * (P.r[j] - P.r[i]), tau: P.tau[i] + a * (P.tau[j] - P.tau[i]) };
+}
+
+// ---------- three.js setup ----------
+const stage = document.getElementById('stage'), cv = document.getElementById('cv');
+const renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.localClippingEnabled = true;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(COL.void);
+const camera = new THREE.PerspectiveCamera(42, 1, 0.05, 400);
+const controls = new THREE.OrbitControls(camera, cv); controls.enableDamping = true; controls.dampingFactor = 0.08; controls.maxDistance = 30; controls.minDistance = 1.5;
+scene.add(new THREE.AmbientLight(0x8090c0, 0.55));
+const sun = new THREE.DirectionalLight(0xffffff, 0.8); sun.position.set(3, 6, 2); scene.add(sun);
+
+function dotTexture() { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.45, 'rgba(255,255,255,.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); }
+const DOT = dotTexture();
+function pointsMat(color, size, extra) { return new THREE.PointsMaterial(Object.assign({ color, size, sizeAttenuation: false, map: DOT, transparent: true, depthWrite: false }, extra || {})); }
+function lineFrom(pts, mat) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3)); return new THREE.Line(g, mat); }
+function dispose(group) { group.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material && o.material.map !== DOT && o.material.dispose) o.material.dispose(); }); while (group.children.length) group.remove(group.children[0]); }
+
+// stars
+{ const n = 1400, p = new Float32Array(n * 3); for (let i = 0; i < n; i++) { const u = Math.random() * 2 - 1, th = Math.random() * Math.PI * 2, s = Math.sqrt(1 - u * u), R = 80 + Math.random() * 40; p[i * 3] = R * s * Math.cos(th); p[i * 3 + 1] = R * u; p[i * 3 + 2] = R * s * Math.sin(th); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3)); scene.add(new THREE.Points(g, pointsMat(0xbfc8e8, 2, { opacity: 0.7 }))); }
+
+const gSpace = new THREE.Group(), gST = new THREE.Group(), gGW = new THREE.Group();
+scene.add(gSpace, gST, gGW);
+const sp = {}, stv = {}, gw = {};
+const P3 = (x, y, h) => new THREE.Vector3(x * S, h, -y * S);
+
+// ---------- curved space view ----------
+function buildSpace() {
+  dispose(gSpace);
+  const r0 = 2 * M, NR = 60, NA = 120, rings = [];
+  for (let j = 0; j <= NR; j++) rings.push(r0 + (REDGE - r0) * Math.pow(j / NR, 1.8));
+  // surface
+  const pos = [], idx = [];
+  for (let j = 0; j <= NR; j++) for (let k = 0; k <= NA; k++) { const a = k / NA * Math.PI * 2, r = rings[j]; pos.push(r * Math.cos(a) * S, surf(r), -r * Math.sin(a) * S); }
+  for (let j = 0; j < NR; j++) for (let k = 0; k < NA; k++) { const a = j * (NA + 1) + k, b = a + NA + 1; idx.push(a, b, a + 1, b, b + 1, a + 1); }
+  const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); sg.setIndex(idx); sg.computeVertexNormals();
+  gSpace.add(new THREE.Mesh(sg, new THREE.MeshLambertMaterial({ color: 0x1a2140, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false })));
+  // grid lines
+  const gl = [];
+  for (let j = 0; j <= NR; j += 3) { const r = rings[j], y = surf(r) + 0.004; for (let k = 0; k < 160; k++) { const a = k / 160 * Math.PI * 2, b = (k + 1) / 160 * Math.PI * 2; gl.push(r * Math.cos(a) * S, y, -r * Math.sin(a) * S, r * Math.cos(b) * S, y, -r * Math.sin(b) * S); } }
+  for (let k = 0; k < 48; k++) { const a = k / 48 * Math.PI * 2, c = Math.cos(a), s = Math.sin(a); for (let j = 0; j < NR; j++) { const r = rings[j], q = rings[j + 1]; gl.push(r * c * S, surf(r) + 0.004, -r * s * S, q * c * S, surf(q) + 0.004, -q * s * S); } }
+  const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.Float32BufferAttribute(gl, 3));
+  gSpace.add(new THREE.LineSegments(gg, new THREE.LineBasicMaterial({ color: COL.grid, transparent: true, opacity: 0.5 })));
+  // the mass at the throat
+  const hole = new THREE.Mesh(new THREE.SphereGeometry(r0 * S, 40, 24), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+  hole.position.y = surf(r0); gSpace.add(hole);
+  const halo = new THREE.Mesh(new THREE.TorusGeometry(r0 * S * 1.05, 0.02, 8, 80), new THREE.MeshBasicMaterial({ color: COL.gold, transparent: true, opacity: 0.8 }));
+  halo.rotation.x = Math.PI / 2; halo.position.y = surf(r0); gSpace.add(halo);
+  sp.massY = surf(r0);
+  // orbit trail (rosette builds up)
+  const op = [];
+  for (let i = 0; i < orbit.P.phi.length; i++) { const r = orbit.P.r[i], a = orbit.P.phi[i]; op.push(r * Math.cos(a) * S, surf(r) + 0.03, -r * Math.sin(a) * S); }
+  sp.trail = lineFrom(op, new THREE.LineBasicMaterial({ color: COL.gold, transparent: true, opacity: 0.85 }));
+  gSpace.add(sp.trail);
+  // Newton ellipse, same rp and ra
+  const u1 = 1 / orbit.rp, u2 = 1 / orbit.ra, ep = [];
+  for (let k = 0; k <= 240; k++) { const a = k / 240 * Math.PI * 2, u = (u1 + u2) / 2 - (u1 - u2) / 2 * Math.cos(a), r = 1 / u; ep.push(r * Math.cos(a) * S, surf(r) + 0.035, -r * Math.sin(a) * S); }
+  sp.newton = lineFrom(ep, new THREE.LineDashedMaterial({ color: COL.chalk, dashSize: 0.07, gapSize: 0.06, transparent: true, opacity: 0.7 }));
+  sp.newton.computeLineDistances(); gSpace.add(sp.newton);
+  // planet
+  sp.planet = new THREE.Mesh(new THREE.SphereGeometry(0.09, 24, 16), new THREE.MeshBasicMaterial({ color: COL.gold }));
+  sp.glow = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0], 3)), pointsMat(COL.gold, 26, { opacity: 0.45 }));
+  sp.planet.add(sp.glow); gSpace.add(sp.planet);
+  // light rays
+  sp.rays = rays.map(ray => {
+    const lp = []; for (const q of ray.pts) lp.push(q.x * S, surf(q.r) + 0.02, -q.y * S);
+    const path = lineFrom(lp, new THREE.LineBasicMaterial({ color: COL.cyan, transparent: true, opacity: 0.18 }));
+    const trail = lineFrom(lp, new THREE.LineBasicMaterial({ color: COL.cyan, transparent: true, opacity: 0.95 }));
+    const head = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0], 3)), pointsMat(COL.cyan, 9));
+    gSpace.add(path, trail, head);
+    return { ray, trail, head, ts: ray.pts.map(q => q.t), lp };
+  });
+}
+
+// ---------- spacetime view ----------
+function clip(lo, hi) { return [new THREE.Plane(new THREE.Vector3(0, 1, 0), -lo), new THREE.Plane(new THREE.Vector3(0, -1, 0), hi)]; }
+function buildST() {
+  dispose(gST);
+  const R = REDGE * S;
+  const mover = new THREE.Group(); gST.add(mover); stv.mover = mover;
+  const pastClip = clip(TOP - PAST, TOP), futClip = clip(TOP, TOP + FUT), allClip = clip(TOP - PAST, TOP + FUT);
+  // planet world line: past solid, future dashed
+  const wp = [];
+  for (let i = 0; i < orbit.P.phi.length; i++) { const r = orbit.P.r[i], a = orbit.P.phi[i]; wp.push(r * Math.cos(a) * S, orbit.P.t[i] * K, -r * Math.sin(a) * S); }
+  mover.add(lineFrom(wp, new THREE.LineBasicMaterial({ color: COL.gold, clippingPlanes: pastClip })));
+  const fut = lineFrom(wp, new THREE.LineDashedMaterial({ color: COL.gold, dashSize: 0.06, gapSize: 0.06, transparent: true, opacity: 0.55, clippingPlanes: futClip }));
+  fut.computeLineDistances(); mover.add(fut);
+  // planet's proper-time beads
+  const tp = []; for (const k of orbit.ticks) tp.push(k.r * Math.cos(k.phi) * S, k.t * K, -k.r * Math.sin(k.phi) * S);
+  const tg = new THREE.BufferGeometry(); tg.setAttribute('position', new THREE.Float32BufferAttribute(tp, 3));
+  mover.add(new THREE.Points(tg, pointsMat(COL.gold, 7, { clippingPlanes: pastClip })));
+  // static clocks: vertical world lines + beads every TICK of their own time
+  stv.clockTops = [];
+  for (const c of CLOCKS) {
+    const x = c.r * Math.cos(c.phi) * S, z = -c.r * Math.sin(c.phi) * S;
+    gST.add(lineFrom([x, TOP - PAST, z, x, TOP + FUT, z], new THREE.LineBasicMaterial({ color: c.col, transparent: true, opacity: 0.45 })));
+    const dt = TICK / Math.sqrt(1 - 2 * M / c.r), bp = [];
+    for (let t = dt; t < orbit.Tend + 2000; t += dt) bp.push(x, t * K, z);
+    const bg = new THREE.BufferGeometry(); bg.setAttribute('position', new THREE.Float32BufferAttribute(bp, 3));
+    mover.add(new THREE.Points(bg, pointsMat(c.col, 8, { clippingPlanes: allClip })));
+    stv.clockTops.push(new THREE.Vector3(x, TOP, z));
+  }
+  // the mass: a column through time
+  const col = new THREE.Mesh(new THREE.CylinderGeometry(2 * M * S, 2 * M * S, PAST + FUT, 40, 1, true), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+  col.position.y = TOP - PAST + (PAST + FUT) / 2; gST.add(col);
+  for (const yy of [TOP - PAST, TOP, TOP + FUT]) { const ring = new THREE.Mesh(new THREE.TorusGeometry(2 * M * S, 0.012, 6, 60), new THREE.MeshBasicMaterial({ color: COL.gold, transparent: true, opacity: yy === TOP ? 0.9 : 0.35 })); ring.rotation.x = Math.PI / 2; ring.position.y = yy; gST.add(ring); }
+  // now slice: flat disc with polar grid
+  const disc = new THREE.Mesh(new THREE.RingGeometry(2 * M * S, R, 96, 1), new THREE.MeshBasicMaterial({ color: 0x5d6c9e, transparent: true, opacity: 0.07, side: THREE.DoubleSide, depthWrite: false }));
+  disc.rotation.x = -Math.PI / 2; disc.position.y = TOP; gST.add(disc);
+  const sl = [];
+  for (const r of [6, 12, 18, 24, 30, 36, 42]) for (let k = 0; k < 120; k++) { const a = k / 120 * Math.PI * 2, b = (k + 1) / 120 * Math.PI * 2; sl.push(r * Math.cos(a) * S, TOP, -r * Math.sin(a) * S, r * Math.cos(b) * S, TOP, -r * Math.sin(b) * S); }
+  for (let k = 0; k < 24; k++) { const a = k / 24 * Math.PI * 2; sl.push(2 * M * S * Math.cos(a), TOP, -2 * M * S * Math.sin(a), R * Math.cos(a), TOP, -R * Math.sin(a)); }
+  const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(sl, 3));
+  gST.add(new THREE.LineSegments(sg, new THREE.LineBasicMaterial({ color: COL.grid, transparent: true, opacity: 0.35 })));
+  // floor of the window
+  const fl = []; for (let k = 0; k < 120; k++) { const a = k / 120 * Math.PI * 2, b = (k + 1) / 120 * Math.PI * 2; fl.push(R * Math.cos(a), TOP - PAST, -R * Math.sin(a), R * Math.cos(b), TOP - PAST, -R * Math.sin(b)); }
+  const fg = new THREE.BufferGeometry(); fg.setAttribute('position', new THREE.Float32BufferAttribute(fl, 3));
+  gST.add(new THREE.LineSegments(fg, new THREE.LineBasicMaterial({ color: COL.grid, transparent: true, opacity: 0.25 })));
+  // time arrow
+  gST.add(lineFrom([R + 0.3, TOP - PAST, 0, R + 0.3, TOP + FUT + 0.2, 0], new THREE.LineBasicMaterial({ color: COL.chalk, transparent: true, opacity: 0.5 })));
+  const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.2, 12), new THREE.MeshBasicMaterial({ color: COL.chalk })); arrow.position.set(R + 0.3, TOP + FUT + 0.3, 0); gST.add(arrow);
+  stv.arrowTip = new THREE.Vector3(R + 0.3, TOP + FUT + 0.35, 0);
+  // light cones on the now slice. Opening drawn 15x narrower (S/K = 15) than the time axis would give (labelled), shape exact:
+  // radial light speed (1 - 2M/r), tangential sqrt(1 - 2M/r).
+  const h = 0.35, ang = -1.25;
+  for (const r of [2.4 * M, 3.2 * M, 5 * M, 9, 16, 26, 38]) {
+    if (r <= 2 * M * 1.05 || r > REDGE) continue;
+    const f = 1 - 2 * M / r, cone = new THREE.Mesh(new THREE.ConeGeometry(1, 1, 36, 1, true), new THREE.MeshBasicMaterial({ color: COL.cyan, transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false }));
+    cone.geometry.translate(0, -0.5, 0); cone.geometry.rotateX(Math.PI);   // apex at origin, opening upward
+    const wrap = new THREE.Group(); wrap.add(cone); cone.scale.set(h * f, h, h * Math.sqrt(f));
+    const edge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.CircleGeometry(1, 36)), new THREE.LineBasicMaterial({ color: COL.cyan, transparent: true, opacity: 0.8 }));
+    edge.rotation.x = -Math.PI / 2; edge.position.y = h; edge.scale.set(h * f, h * Math.sqrt(f), 1); wrap.add(edge);
+    wrap.position.set(r * Math.cos(ang) * S, TOP, -r * Math.sin(ang) * S); wrap.rotation.y = ang; gST.add(wrap);
+  }
+  stv.coneLabel = new THREE.Vector3(38 * Math.cos(ang) * S, TOP + h, -38 * Math.sin(ang) * S);
+  // planet now
+  stv.planet = new THREE.Mesh(new THREE.SphereGeometry(0.08, 20, 14), new THREE.MeshBasicMaterial({ color: COL.gold }));
+  stv.planet.add(new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0], 3)), pointsMat(COL.gold, 24, { opacity: 0.45 })));
+  gST.add(stv.planet);
+}
+
+// ---------- gravitational waves ----------
+const GWR = 8, GWN = 34, GWS = 140, GWV = 2.6;
+function buildGW() {
+  const lines = [];
+  for (let i = 0; i <= GWN; i++) { const c = -GWR + 2 * GWR * i / GWN; for (let k = 0; k < GWS; k++) { const a = -GWR + 2 * GWR * k / GWS, b = -GWR + 2 * GWR * (k + 1) / GWS; lines.push(a, 0, c, b, 0, c, c, 0, a, c, 0, b); } }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(lines, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(lines.length), 3));
+  gw.base = Float32Array.from(lines);
+  gw.grid = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.9 }));
+  gGW.add(gw.grid);
+  gw.m1 = new THREE.Mesh(new THREE.SphereGeometry(0.16, 24, 16), new THREE.MeshBasicMaterial({ color: COL.chalk }));
+  gw.m2 = new THREE.Mesh(new THREE.SphereGeometry(0.16, 24, 16), new THREE.MeshBasicMaterial({ color: COL.chalk }));
+  gw.flash = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([0, 0.1, 0], 3)), pointsMat(COL.gold, 80, { opacity: 0 }));
+  gGW.add(gw.m1, gw.m2, gw.flash);
+  gw.NP = 36; gw.ringH = 2.4; gw.ringR = 1.3;
+  gw.ring = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(gw.NP * 3), 3)), pointsMat(COL.rose, 8));
+  gGW.add(gw.ring);
+  const rl = []; for (let k = 0; k < 96; k++) { const a = k / 96 * Math.PI * 2, b = (k + 1) / 96 * Math.PI * 2; rl.push(gw.ringR * Math.cos(a), gw.ringH, gw.ringR * Math.sin(a), gw.ringR * Math.cos(b), gw.ringH, gw.ringR * Math.sin(b)); }
+  const rg = new THREE.BufferGeometry(); rg.setAttribute('position', new THREE.Float32BufferAttribute(rl, 3));
+  gGW.add(new THREE.LineSegments(rg, new THREE.LineDashedMaterial({ color: COL.rose, transparent: true, opacity: 0.35, dashSize: 0.05, gapSize: 0.05 })).computeLineDistances());
+  gGW.add(lineFrom([0, 0, 0, 0, gw.ringH, 0], new THREE.LineDashedMaterial({ color: COL.chalk, transparent: true, opacity: 0.25, dashSize: 0.06, gapSize: 0.06 })).computeLineDistances());
+  Object.assign(gw, { T: 0, t: 0, Phi: 0, state: 'inspiral', a0: 2.2, tc: 13, hist: [], om: 0, amp: 0 });
+  gw.C = (2 * Math.PI / 2.4) * Math.pow(gw.a0, 1.5);
+}
+const cBase = new THREE.Color(0x3a4670), cUp = new THREE.Color(COL.gold), cDn = new THREE.Color(COL.cyan), tmpC = new THREE.Color();
+function gwRet(T) {
+  const H = gw.hist; if (!H.length || T < H[0].T) return null;
+  let lo = 0, hi = H.length - 1; if (T >= H[hi].T) return H[hi];
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (H[m].T <= T) lo = m; else hi = m; }
+  return H[lo];
+}
+function stepGW(dt) {
+  gw.T += dt; gw.t += dt;
+  let a = 0, om = 0, amp = 0;
+  if (gw.state === 'inspiral') {
+    a = gw.a0 * Math.pow(Math.max(1 - gw.t / gw.tc, 0), 0.25);
+    if (a < 0.34) { gw.state = 'ring'; gw.t = 0; gw.aM = 0.34; gw.omM = gw.C * Math.pow(0.34, -1.5); a = 0.34; }
+    om = gw.C * Math.pow(a, -1.5); amp = gw.a0 / a;
+  }
+  if (gw.state === 'ring') { a = 0; om = gw.omM; amp = (gw.a0 / gw.aM) * Math.exp(-gw.t / 0.25); if (gw.t > 0.9) { gw.state = 'quiet'; gw.t = 0; } }
+  if (gw.state === 'quiet') { om = 0; amp = 0; if (gw.t > GWR * 1.45 / GWV) { gw.state = 'inspiral'; gw.t = 0; gw.Phi = 0; } }
+  gw.Phi += om * dt; gw.om = om; gw.a = a; gw.amp = amp;
+  gw.hist.push({ T: gw.T, Phi: gw.Phi, amp });
+  while (gw.hist.length > 2 && gw.hist[0].T < gw.T - 7) gw.hist.shift();
+}
+function drawGW() {
+  const pos = gw.grid.geometry.attributes.position, colA = gw.grid.geometry.attributes.color, B = gw.base, arr = pos.array, ca = colA.array;
+  const n = B.length / 3;
+  for (let i = 0; i < n; i++) {
+    const x = B[i * 3], z = B[i * 3 + 2], r = Math.hypot(x, z);
+    const s = gwRet(gw.T - r / GWV); let hgt = 0;
+    if (s && s.amp > 0) { const th = Math.atan2(-z, x), fade = Math.min(1, Math.max(0, (r - 0.25) / 0.9)); hgt = 1.0 * s.amp / (1 + r) * Math.cos(2 * th - 2 * s.Phi) * fade; }
+    arr[i * 3 + 1] = hgt;
+    const k = Math.min(1, Math.abs(hgt) / 0.25); tmpC.copy(cBase).lerp(hgt > 0 ? cUp : cDn, k);
+    const edge = Math.max(0, 1 - Math.max(0, r - GWR * 0.75) / (GWR * 0.35));
+    ca[i * 3] = tmpC.r * edge; ca[i * 3 + 1] = tmpC.g * edge; ca[i * 3 + 2] = tmpC.b * edge;
+  }
+  pos.needsUpdate = true; colA.needsUpdate = true;
+  if (gw.state === 'inspiral') { const c = Math.cos(gw.Phi), s = Math.sin(gw.Phi), h = gw.a / 2; gw.m1.position.set(h * c, 0.12, -h * s); gw.m2.position.set(-h * c, 0.12, h * s); gw.m1.visible = gw.m2.visible = true; gw.m1.scale.setScalar(1); }
+  else { gw.m1.position.set(0, 0.12, 0); gw.m1.scale.setScalar(1.35); gw.m1.visible = true; gw.m2.visible = false; }
+  gw.flash.material.opacity = gw.state === 'ring' ? Math.max(0, 1 - gw.t / 0.9) : 0;
+  // face-on ring: circular polarisation
+  const s = gwRet(gw.T - gw.ringH / GWV), rp = gw.ring.geometry.attributes.position.array;
+  const A = s ? 0.5 * s.amp / (1 + gw.ringH) : 0, hp = A * Math.cos(2 * (s ? s.Phi : 0)), hx = A * Math.sin(2 * (s ? s.Phi : 0));
+  for (let k = 0; k < gw.NP; k++) { const a = k / gw.NP * Math.PI * 2, x = gw.ringR * Math.cos(a), y = gw.ringR * Math.sin(a); rp[k * 3] = x + 0.5 * (hp * x + hx * y); rp[k * 3 + 1] = gw.ringH; rp[k * 3 + 2] = y + 0.5 * (hx * x - hp * y); }
+  gw.ring.geometry.attributes.position.needsUpdate = true;
+}
+
+// ---------- labels ----------
+const labelBox = document.getElementById('labels');
+function tag(text, color) { const el = document.createElement('div'); el.className = 'tag'; el.textContent = text; el.style.color = color; labelBox.appendChild(el); return el; }
+const L = {
+  mass: tag('mass M, horizon r = 2M', '#f2b84b'), planet: tag('planet', '#f2b84b'),
+  c0: tag('clock r = 4', '#e47d9c'), c1: tag('clock r = 8', '#f0a070'), c2: tag('clock r = 30', '#e9e5d8'),
+  now: tag('now', '#e9e5d8'), time: tag('time t', '#e9e5d8'), cones: tag('light cones (15x narrowed)', '#7fd6e8'),
+  ring: tag('free particles', '#e47d9c'), newton: tag("Newton's ellipse", '#e9e5d8'),
+};
+const v3 = new THREE.Vector3();
+function place(el, p) {
+  v3.copy(p).project(camera);
+  const w = stage.clientWidth, h = stage.clientHeight;
+  if (v3.z > 1 || v3.z < -1) { el.hidden = true; return; }
+  el.hidden = false; el.style.left = ((v3.x + 1) / 2 * w) + 'px'; el.style.top = ((1 - v3.y) / 2 * h) + 'px';
+}
+function hideAll() { for (const k in L) L[k].hidden = true; }
+
+// ---------- views ----------
+const CAPTIONS = {
+  space: '<b>Curved space.</b> One instant of space around the mass, lifted to show its curvature (depth drawn 1.5×). The <span class="c-gold">planet</span> rides a geodesic whose perihelion creeps forward each orbit; <span class="c-cyan">light</span> bends round the well.',
+  st: '<b>Spacetime, one space dimension dropped.</b> Time runs up. The <span class="c-gold">planet\'s world line</span> is a helix; beads are ticks of each clock\'s own time. Clocks deep in the well tick less often.',
+  gw: '<b>Gravitational waves.</b> A binary spirals in and merges. Ripple height is the wave strain, exaggerated about 10²¹ times; crests travel outward at light speed.',
+};
+const CAMS = { space: [[0, 3.0, 4.6], [0, -0.9, 0]], st: [[12.5, 2.2, 12.0], [0, -1.0, 0]], gw: [[0, 5.2, 7.2], [0, 0.2, 0]] };
+function setMode(m, moveCam = true) {
+  mode = m;
+  for (const [id, mm] of [['tab-space', 'space'], ['tab-st', 'st'], ['tab-gw', 'gw']]) document.getElementById(id).setAttribute('aria-pressed', String(mm === m));
+  gSpace.visible = m === 'space'; gST.visible = m === 'st'; gGW.visible = m === 'gw';
+  document.getElementById('caption').innerHTML = CAPTIONS[m];
+  document.getElementById('roOrbit').hidden = m === 'gw'; document.getElementById('roGW').hidden = m !== 'gw';
+  document.getElementById('roTitle').textContent = m === 'gw' ? 'Live readouts, binary' : 'Live readouts, single mass';
+  if (moveCam) { const [p, t] = CAMS[m]; camera.position.set(...p); controls.target.set(...t); controls.update(); }
+  hideAll();
+}
+
+function rebuild() {
+  const frac = orbit ? tNow / orbit.Tend : 0;
+  buildOrbit(); buildRays(); buildSpace(); buildST();
+  tNow = frac * orbit.Tend;
+  sp.newton.visible = document.getElementById('newton').checked;
+  const fmt = x => (x * 180 / Math.PI).toFixed(1) + '°';
+  document.getElementById('r-prec').textContent = fmt(orbit.adv) + ' · ' + fmt(orbit.advWeak);
+  const wide = rays.find(r => r.b === 22);
+  document.getElementById('r-bend').textContent = (wide && wide.defl != null ? fmt(wide.defl) : 'captured') + ' · ' + fmt(4 * M / 22);
+}
+
+// ---------- loop ----------
+let tNow = 0, photonClock = 0, last = performance.now();
+const RATE = 150;   // coordinate time per real second at speed 1
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (playing) {
+    tNow += dt * RATE * speed; photonClock += dt * RATE * speed * 0.55;
+    if (tNow > orbit.Tend - FUT / K - 10) tNow = 0;
+    if (mode === 'gw') stepGW(dt * speed);
+  }
+  const o = orbitAt(tNow), px = o.r * Math.cos(o.phi) * S, pz = -o.r * Math.sin(o.phi) * S;
+  if (mode === 'space') {
+    sp.planet.position.set(px, surf(o.r) + 0.06, pz);
+    sp.trail.geometry.setDrawRange(0, o.i + 1);
+    for (const R of sp.rays) {
+      const per = R.ray.tEnd + 60, tt = (photonClock + Math.abs(R.ray.b) * 7) % per;
+      const j = idxAt(R.ts, Math.min(tt, R.ray.tEnd)), j0 = idxAt(R.ts, Math.max(0, tt - 14));
+      const vis = tt <= R.ray.tEnd;
+      R.head.visible = vis; R.trail.visible = vis;
+      if (vis) { R.head.position.set(R.lp[j * 3], R.lp[j * 3 + 1], R.lp[j * 3 + 2]); R.trail.geometry.setDrawRange(j0, j - j0 + 1); }
+    }
+    hideAll();
+    place(L.mass, new THREE.Vector3(2 * M * S * 1.1, sp.massY, 0)); place(L.planet, sp.planet.position);
+    if (sp.newton.visible) { const r = orbit.ra; place(L.newton, new THREE.Vector3(r * S * Math.cos(2.4), surf(r), -r * S * Math.sin(2.4))); }
+  } else if (mode === 'st') {
+    stv.mover.position.y = TOP - tNow * K;
+    stv.planet.position.set(px, TOP, pz);
+    hideAll();
+    place(L.planet, stv.planet.position); place(L.c0, stv.clockTops[0]); place(L.c1, stv.clockTops[1]); place(L.c2, stv.clockTops[2]);
+    place(L.time, stv.arrowTip); place(L.cones, stv.coneLabel); place(L.mass, new THREE.Vector3(2 * M * S, TOP - PAST + 0.3, 0));
+  } else {
+    drawGW(); hideAll(); place(L.ring, new THREE.Vector3(gw.ringR + 0.15, gw.ringH, 0));
+  }
+  // readouts
+  const rate = r => Math.sqrt(1 - 2 * M / r);
+  if (mode !== 'gw') {
+    const dtdtau = (() => { const P = orbit.P, i = Math.min(o.i, P.t.length - 2); return (P.tau[i + 1] - P.tau[i]) / (P.t[i + 1] - P.t[i]); })();
+    document.getElementById('r-t').textContent = tNow.toFixed(0);
+    document.getElementById('r-tau').textContent = o.tau.toFixed(0);
+    document.getElementById('r-r').textContent = o.r.toFixed(1) + ' · ' + dtdtau.toFixed(3);
+    document.getElementById('r-c4').textContent = (tNow * rate(4)).toFixed(0) + ' · ' + rate(4).toFixed(3);
+    document.getElementById('r-c8').textContent = (tNow * rate(8)).toFixed(0) + ' · ' + rate(8).toFixed(3);
+  } else {
+    document.getElementById('g-p').textContent = gw.om > 0 && gw.state === 'inspiral' ? (2 * Math.PI / gw.om).toFixed(2) + ' s' : '–';
+    document.getElementById('g-f').textContent = gw.om > 0 ? (gw.om / Math.PI).toFixed(2) + ' Hz' : '–';
+    document.getElementById('g-s').textContent = { inspiral: 'inspiral', ring: 'merger, ringdown', quiet: 'last waves leaving' }[gw.state];
+  }
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+
+function resize() { const w = stage.clientWidth, h = stage.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+new ResizeObserver(resize).observe(stage);
+
+// ---------- controls ----------
+document.getElementById('tab-space').onclick = () => setMode('space');
+document.getElementById('tab-st').onclick = () => setMode('st');
+document.getElementById('tab-gw').onclick = () => setMode('gw');
+const playBtn = document.getElementById('play');
+const syncPlay = () => { playBtn.textContent = playing ? 'Pause' : 'Play'; };
+playBtn.onclick = () => { playing = !playing; syncPlay(); };
+const massIn = document.getElementById('mass');
+massIn.oninput = () => { M = +massIn.value; document.getElementById('massOut').textContent = M.toFixed(2); rebuild(); setMode(mode, false); };
+const speedIn = document.getElementById('speed');
+speedIn.oninput = () => { speed = +speedIn.value; document.getElementById('speedOut').textContent = speed.toFixed(1) + '×'; };
+document.getElementById('newton').onchange = e => { sp.newton.visible = e.target.checked; };
+
+buildGW(); rebuild(); tNow = reduce ? 1400 : 0; setMode('space'); syncPlay(); resize();
+if (reduce) { photonClock = 40; for (let i = 0; i < 300; i++) stepGW(1 / 30); }
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
